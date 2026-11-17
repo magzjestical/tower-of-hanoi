@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tower of Hanoi · Wooden Puzzle</title>
+<style>
+:root{--paper:#f6ecd9;--paper2:#efe0c3;--wood:#7a4a22;--wood2:#5a3a22;--ink:#3b2a1a;--acc:#c0583a}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--paper);color:var(--ink);font:16px/1.5 Georgia,"Times New Roman",serif;
+  background-image:radial-gradient(#e6d5b0 1px,transparent 1px);background-size:22px 22px}
+.wrap{max-width:1000px;margin:0 auto;padding:26px 18px 40px}
+header{text-align:center;margin-bottom:18px}
+h1{margin:0;font-size:2rem;color:var(--wood2);letter-spacing:1px}
+header p{margin:4px 0 0;font-style:italic;color:#7a6348}
+.ribbon{display:flex;gap:12px;justify-content:center;margin-bottom:18px;flex-wrap:wrap}
+.card{background:#fffaf0;border:2px solid var(--wood);border-radius:12px;padding:8px 22px;text-align:center;min-width:150px;box-shadow:0 3px 0 var(--wood2)}
+.card b{display:block;font-size:1.6rem;color:var(--acc)}
+.card span{font-size:.8rem;text-transform:uppercase;letter-spacing:1.5px;color:#7a6348}
+.layout{display:grid;grid-template-columns:1fr 210px;gap:16px}
+#msg{background:#fffaf0;border:2px dashed #b89a6a;border-radius:10px;padding:9px 14px;margin-bottom:14px;text-align:center;font-style:italic;min-height:2.7rem}
+#msg.err{border-color:#a8342a;color:#8a2a20}
+#msg.win{border-color:#4d7a3c;color:#2f5a22;font-style:normal;font-weight:700;background:#eef6e3}
+#board{display:flex;gap:12px;background:linear-gradient(#fbf3e2,var(--paper2));border:2px solid var(--wood);border-radius:14px;padding:14px 14px 0}
+.peg{flex:1;position:relative;cursor:pointer;border-radius:10px 10px 0 0;transition:background .15s}
+.peg:hover{background:rgba(122,74,34,.07)}
+.peg.sel{background:rgba(192,88,58,.14)}
+.peg.hint{background:rgba(217,164,65,.28)}
+.rod{position:absolute;bottom:26px;left:50%;width:14px;margin-left:-7px;border-radius:7px 7px 0 0;background:linear-gradient(90deg,#6a3f1b,#a8703a,#6a3f1b)}
+.peg::after{content:"";position:absolute;left:0;right:0;bottom:0;height:26px;border-radius:6px 6px 0 0;background:linear-gradient(#8b5a2b,var(--wood2))}
+.stack{position:absolute;left:0;right:0;bottom:26px;display:flex;flex-direction:column-reverse;align-items:center}
+.label{position:absolute;bottom:2px;width:100%;text-align:center;color:#f6ecd9;font-weight:700;z-index:1}
+.disk{height:28px;margin-top:2px;border-radius:14px;color:#fff;font-weight:700;font-size:.9rem;text-shadow:0 1px 2px rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:center;z-index:2;border:2px solid rgba(0,0,0,.25);
+  background-image:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,0) 60%);transition:transform .15s}
+.disk.lift{transform:translateY(-22px);box-shadow:0 8px 8px -4px rgba(0,0,0,.35)}
+.c1{background-color:#c0583a}.c2{background-color:#d9a441}.c3{background-color:#7a8b3c}.c4{background-color:#3f8a8c}
+.c5{background-color:#8a4f7d}.c6{background-color:#3b5b8c}.c7{background-color:#d98a8a}.c0{background-color:#6f8f6a}
+aside{background:#fffaf0;border:2px solid var(--wood);border-radius:14px;padding:12px 14px;max-height:430px;overflow:auto}
+aside h3{margin:0 0 6px;font-size:1rem;color:var(--wood2);border-bottom:1px solid #d8c29a;padding-bottom:4px}
+#log{list-style:none;margin:0;padding:0;font-size:.85rem}
+#log li{padding:3px 0;border-bottom:1px dotted #e3d2ae}
+.bar{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:18px}
+select,button{font:inherit;font-size:.95rem;padding:8px 16px;border-radius:999px;border:2px solid var(--wood2)}
+select{background:#fffaf0;color:var(--ink)}
+button{background:var(--wood2);color:var(--paper);cursor:pointer;transition:.15s}
+button:hover:not(:disabled){background:var(--acc);transform:translateY(-2px)}
+button.alt{background:#fffaf0;color:var(--wood2)}button.alt:hover:not(:disabled){background:#f2dcae;color:var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.shake{animation:sh .3s}@keyframes sh{25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+@media(max-width:760px){.layout{grid-template-columns:1fr}aside{max-height:160px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>The Tower of Hanoi</h1><p>An old puzzle, judged by Prolog. Carry the whole tower to peg C.</p></header>
+  <div class="ribbon">
+    <div class="card"><b id="mv">0</b><span>Moves made</span></div>
+    <div class="card"><b id="op">0</b><span>Fewest possible</span></div>
+    <div class="card"><b id="lf">0</b><span>Still to go</span></div>
+  </div>
+  <div class="layout">
+    <div><div id="msg">Loading…</div><div id="board"></div></div>
+    <aside><h3>Move log</h3><ul id="log"></ul></aside>
+  </div>
+  <div class="bar">
+    <select id="n"></select>
+    <button id="new">New game</button>
+    <button id="hint" class="alt">Hint</button>
+    <button id="auto" class="alt">Solve for me</button>
+  </div>
+</div>
+<script src="/hanoi.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+for (let i = 3; i <= 8; i++) $('n').add(new Option(i + ' disks', i, false, i === 4));
+
+Hanoi.bind({
+  render(S) {
+    const H = S.n * 30 + 60;
+    $('board').innerHTML = S.pegs.map((p, i) => {
+      const ds = [...p].reverse().map((d, j, a) =>
+        `<div class="disk c${d % 8}${j === a.length - 1 && S.sel === i ? ' lift' : ''}" style="width:${26 + 70 * d / S.n}%">${d}</div>`).join('');
+      const k = 'peg' + (S.sel === i ? ' sel' : '') + (S.hint && (S.hint.from === i || S.hint.to === i) ? ' hint' : '');
+      return `<div class="${k}" data-i="${i}" style="height:${H + 26}px"><div class="rod" style="height:${H}px"></div><div class="stack">${ds}</div><div class="label">${'ABC'[i]}</div></div>`;
+    }).join('');
+    $('mv').textContent = S.moves; $('op').textContent = S.optimal; $('lf').textContent = S.left;
+    $('log').innerHTML = S.log.slice().reverse().map(x => `<li>${x}</li>`).join('') || '<li>No moves yet.</li>';
+  },
+  say(t, c = '', i) {
+    const m = $('msg'); m.textContent = t; m.className = c;
+    if (i != null) { const p = document.querySelector(`.peg[data-i="${i}"]`); p && p.classList.add('shake'); }
+  },
+  busy(b) { $('hint').disabled = $('auto').disabled = b; }
+});
+
+$('board').onclick = e => { const p = e.target.closest('.peg'); if (p) Hanoi.click(+p.dataset.i); };
+const restart = () => Hanoi.newGame(+$('n').value);
+$('n').onchange = restart;
+$('new').onclick = restart;
+$('hint').onclick = Hanoi.hint;
+$('auto').onclick = Hanoi.auto;
+restart();
+</script>
+</body>
+</html>
